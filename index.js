@@ -59,9 +59,9 @@ function handleDisconnect() {
 
   if (reconnectTimeout) return
   reconnectTimeout = setTimeout(() => {
-    reconnectTimeout = null
-    createBot()
-  }, 5000)
+  reconnectTimeout = null
+  createBot()
+}, 30000) // 30 saniye bekle
 }
 
 function startActions() {
