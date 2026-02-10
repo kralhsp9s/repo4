@@ -11,7 +11,7 @@ const config = {
   host: process.env.host,
   port: process.env.p,
   username: process.env.ad,
-  version: false
+  version: "1.16.5"
 }
 
 let bot
