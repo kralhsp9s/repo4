@@ -31,10 +31,10 @@ function createBot() {
   stopActions()
 
   const config = {
-    host: process.env.host || "SUNUCU_IP",
+    host: process.env.host || "izmir.dev.tc",
     port: process.env.p || 25565,
     username: randomNick(),
-    version: "1.16.5"
+    version: "1.20.1"
   }
 
   console.log("Bağlanıyor:", config.username)
