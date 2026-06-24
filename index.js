@@ -15,6 +15,7 @@ let bot = null;
 let botStartTime = null;
 let jumpInterval = null;
 let moveInterval = null;
+let lookInterval = null; // Kafa sallama için hafıza sızıntısını önleyen değişken
 let reconnectTimeout = null;
 
 // --- PROSES HATA YAKALAYICILAR (Çökmeyi Önler) ---
@@ -54,8 +55,9 @@ function startActions() {
     startJumping();
     startMoving();
     
-    // Anti-AFK kafa sallama hareketi
-    setInterval(() => {
+    // Eski kafa sallama döngüsü varsa temizler ve yenisini açar
+    if (lookInterval) clearInterval(lookInterval);
+    lookInterval = setInterval(() => {
         if (bot && bot.entity) {
             bot.look(bot.entity.yaw + 0.1, bot.entity.pitch);
         }
@@ -65,11 +67,14 @@ function startActions() {
 function stopActions() {
     if (jumpInterval) clearInterval(jumpInterval);
     if (moveInterval) clearInterval(moveInterval);
+    if (lookInterval) clearInterval(lookInterval);
     jumpInterval = null;
     moveInterval = null;
+    lookInterval = null;
 }
 
 function startJumping() {
+    if (jumpInterval) clearInterval(jumpInterval);
     jumpInterval = setInterval(() => {
         if (!bot || !bot.entity) return;
         bot.setControlState('jump', true);
@@ -79,6 +84,7 @@ function startJumping() {
 
 function startMoving() {
     const dirs = ['forward', 'back', 'left', 'right'];
+    if (moveInterval) clearInterval(moveInterval);
     moveInterval = setInterval(() => {
         if (!bot || !bot.entity) return;
         dirs.forEach(d => bot.setControlState(d, false));
@@ -96,8 +102,8 @@ function createBot() {
         host: process.env.MC_HOST || "izmirr.aternos.me",
         port: parseInt(process.env.MC_PORT) || 25565, 
         username: randomNick(),
-        checkTimeoutInterval: 90000, // Zaman aşımı toleransı (Hugging Face için yüksek tutuldu)
-        keepAlive: true,             // Bağlantıyı diri tutar
+        checkTimeoutInterval: 90000, 
+        keepAlive: true,             
         version: "1.21.4"
     };
 
@@ -112,7 +118,7 @@ function createBot() {
 
     // --- CANLI CHAT LOG VE OTOMATİK GİRİŞ SİSTEMİ ---
     bot.on('messagestr', (message, position) => {
-        if (position === 'game_info') return; // Action-bar yazılarını loglama
+        if (position === 'game_info') return; 
 
         // Web paneline mesajı gönder
         io.emit('chat-log', { username: '💬 Sunucu Akışı', message: message });
@@ -202,7 +208,11 @@ io.on('connection', (socket) => {
         if (!bot) return;
 
         if (data.action === 'send-message') {
-            bot.chat(data.message);
+            if (bot.entity) {
+                bot.chat(data.message);
+            } else {
+                socket.emit('chat-log', { username: '⚠️ Sistem', message: 'Bot henüz dünyaya inmedi, mesaj gönderilemez.' });
+            }
         } 
         else if (data.action === 'get-location') {
             if (bot.entity) {
@@ -224,8 +234,8 @@ io.on('connection', (socket) => {
 });
 
 // --- WEB SUNUCUSUNU BAŞLAT ---
-// Hugging Face 7860 portunu zorunlu kıldığı için isimlendirmeyi WEB_PORT yaparak çakışmaları tamamen bitirdik.
+// Standart GitHub reposu, lokal testler ve Render/Railway ortamları için varsayılan port 3000 olarak ayarlandı.
 const WEB_PORT = process.env.PORT || 3000;
 server.listen(WEB_PORT, () => {
-    console.log(`[🚀] Web paneli aktif port: ${WEB_PORT}`);
+    console.log(`[🚀] Web paneli aktif: http://localhost:${WEB_PORT}`);
 });
