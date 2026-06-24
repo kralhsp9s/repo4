@@ -34,6 +34,8 @@ function createBot() {
     host: process.env.host || "izmir.dev.tc",
     port: process.env.p || 25565,
     username: randomNick(),
+    checkTimeoutInterval: 60 * 1000, 
+    keepAlive: true,
     version: "1.20.1"
   }
 
@@ -42,7 +44,7 @@ function createBot() {
   bot = mineflayer.createBot(config)
 
   bot.once('spawn', () => {
-    console.log("Giriş başarılı")
+    console.log("[🟢] Giriş başarılı")
     startActions()
   })
 
@@ -54,7 +56,7 @@ function createBot() {
 }
 
 function handleDisconnect() {
-  console.log("Bağlantı koptu → tekrar deneniyor")
+  console.log("[🔴] Bağlantı koptu → tekrar deneniyor")
   stopActions()
 
   if (reconnectTimeout) return
