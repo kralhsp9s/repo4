@@ -103,11 +103,11 @@ function createBot() {
         botStartTime = Date.now();
         startActions();
 
-        try {
+     /*   try {
             mineflayerViewer(bot, { port: parseInt(process.env.VIEWER_PORT) || 3001, firstPerson: false });
         } catch (vErr) {
             console.log("Harita başlatılamadı:", vErr.message);
-        }
+        }*/
     });
 
     bot.on('chat', (username, message) => {
