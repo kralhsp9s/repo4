@@ -85,7 +85,7 @@ function createBot() {
         host: process.env.ip || "izmirr.aternos.me",
         port: parseInt(process.env.port) || 25565,
         username: randomNick(),
-        checkTimeoutInterval: 60 * 1000, // Zaman aşımı süresi artırıldı
+        checkTimeoutInterval: 60 * 1000,
         keepAlive: true,
         version: "1.20.1"
     };
