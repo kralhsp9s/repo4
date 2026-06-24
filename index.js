@@ -225,10 +225,8 @@ io.on('connection', (socket) => {
 const PORT = process.env.port || 3000;
 server.listen(PORT, () => {
     console.log(`[🚀] Web paneli ve API aktif: http://localhost:${PORT}`);
-});    checkTimeoutInterval: 60 * 1000, 
-    keepAlive: true,
-    version: "1.20.1"
-  }
+});    
+  
 
   console.log("Bağlanıyor:", config.username)
 
