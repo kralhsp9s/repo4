@@ -98,7 +98,7 @@ function createBot() {
         username: randomNick(),
         checkTimeoutInterval: 90000, // Zaman aşımı toleransı (Hugging Face için yüksek tutuldu)
         keepAlive: true,             // Bağlantıyı diri tutar
-        version: "1.21.11"
+        version: "1.21.4"
     };
 
     console.log(`[🤖] Bağlanıyor... Kullanıcı Adı: ${config.username}`);
