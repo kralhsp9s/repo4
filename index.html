@@ -164,8 +164,12 @@
                     </div>
 
                     <div class="card">
-                        <h3 style="margin-top: 0;">🗺️ Canlı Harita & Radar</h3>
-                        <iframe id="map-frame"></iframe>
+                    
+<h3 style="margin-top: 0;">
+🗺️ Viewer (Render'da sınırlı çalışabilir)
+</h3>
+
+ <iframe id="map-frame"></iframe>
                     </div>
                 </div>
 
@@ -193,11 +197,24 @@
     <script>
         const socket = io();
 
-        // --- DİNAMİK İFRAME AYARLARI ---
-        const currentHost = window.location.hostname;
-        const protocol = window.location.protocol;
-        document.getElementById('map-frame').src = `${protocol}//${currentHost}:3001`;
-        document.getElementById('inv-frame').src = `${protocol}//${currentHost}:3002`;
+    
+
+// --- RENDER UYUMLU İFRAME AYARLARI ---
+const currentHost = window.location.origin;
+
+// Inventory artık aynı domain altında çalışıyor
+document.getElementById('inv-frame').src =
+    `${currentHost}/inventory`;
+
+// Viewer Render'da bazen çalışmıyor
+// Bu yüzden ana siteyi gösteriyoruz
+document.getElementById('map-frame').src =
+    `${currentHost}`;
+
+// Viewer yüklenemezse gizle
+document.getElementById('map-frame').onerror = () => {
+    document.getElementById('map-frame').style.display = 'none';
+};
 
         // --- TEMA İŞLEMLERİ ---
         function toggleTheme() {
