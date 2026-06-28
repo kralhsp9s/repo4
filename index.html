@@ -165,7 +165,7 @@
 
                     <div class="card">
                         <h3 style="margin-top: 0;">🗺️ Canlı Harita & Radar</h3>
-                        <iframe src="http://localhost:3001"></iframe>
+                        <iframe id="map-frame"></iframe>
                     </div>
                 </div>
 
@@ -173,7 +173,7 @@
                     
                     <div class="card">
                         <h3 style="margin-top: 0;">🎒 Resimli Envanter</h3>
-                        <iframe src="http://localhost:3002" style="height: 250px;"></iframe>
+                        <iframe id="inv-frame" style="height: 250px;"></iframe>
                     </div>
 
                     <div class="card">
@@ -192,6 +192,12 @@
 
     <script>
         const socket = io();
+
+        // --- DİNAMİK İFRAME AYARLARI ---
+        const currentHost = window.location.hostname;
+        const protocol = window.location.protocol;
+        document.getElementById('map-frame').src = `${protocol}//${currentHost}:3001`;
+        document.getElementById('inv-frame').src = `${protocol}//${currentHost}:3002`;
 
         // --- TEMA İŞLEMLERİ ---
         function toggleTheme() {
@@ -319,7 +325,7 @@
             }
         });
 
-        // 4. EVAL FONKSİYONLARI (YENİ EKLENDİ)
+        // 4. EVAL FONKSİYONLARI
         function toggleEvalPanel() {
             const panel = document.getElementById('eval-panel');
             panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
