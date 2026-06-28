@@ -283,7 +283,7 @@ io.on('connection', (socket) => {
     });
 });
 
-const WEB_PORT = process.env.PORT || 3000;
+const WEB_PORT = process.env.VIEWER_PORT || 3000;
 server.listen(WEB_PORT, () => {
     console.log(`[🚀] Web paneli aktif: http://localhost:${WEB_PORT}`);
 });
