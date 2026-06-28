@@ -20,11 +20,11 @@ let botStartTime = null;
 let jumpInterval = null;
 let moveInterval = null;
 let lookInterval = null;
-let reconnectTimeout = null;
+let isShuttingDown = false; // Yeniden başlatma çakışmalarını önlemek için kilit
 
 // --- PROSES HATA YAKALAYICILAR ---
 process.on('uncaughtException', (err) => {
-    if (err.code === 'EADDRINUSE') return; // Port çakışmalarını yoksay (viewer için)
+    if (err.code === 'EADDRINUSE') return; // Port çakışmalarını yoksay
     console.log("⚠️ Kritik Sistem Hatası:", err.message);
 });
 
@@ -34,7 +34,7 @@ process.on('unhandledRejection', (err) => {
 
 // --- EXPRESS AYARLARI ---
 app.use(express.json());
-app.use(express.static('public')); // Gerekirse statik dosyalar için
+app.use(express.static('public')); 
 
 app.use(session({
     secret: process.env.SESSION_SECRET || 'bot-panel-gizli-sifre', 
@@ -49,7 +49,6 @@ app.get('/', (req, res) => {
 
 // Yeni: Gelişmiş Eval Konsolu Sayfası
 app.get('/console', (req, res) => {
-    // Eğer session ile admin girişi zorunluysa buraya kontrol ekleyebilirsin
     res.sendFile(path.join(__dirname, 'console.html'));
 });
 
@@ -130,13 +129,13 @@ function createBot() {
         try {
             mineflayerViewer(bot, { port: 3001, firstPerson: true });
             console.log("[👁️] Canlı Görüntü & Radar Aktif: http://localhost:3001");
-        } catch(e) { console.log("Viewer zaten açık."); }
+        } catch(e) { console.log("Viewer başlatılamadı veya zaten açık:", e.message); }
 
         // 2. Resimli Envanter (Port 3002)
         try {
             inventoryViewer(bot, { port: 3002 });
             console.log("[🎒] Web Envanter Aktif: http://localhost:3002");
-        } catch(e) { console.log("Envanter zaten açık."); }
+        } catch(e) { console.log("Envanter başlatılamadı veya zaten açık:", e.message); }
 
         // İlk spawn olduğunda can ve açlığı gönder
         sendBotStatus();
@@ -158,7 +157,7 @@ function createBot() {
         }
     });
 
-    // --- CAN, AÇLIK VE EFEKT GÜNCELLEMELERİ ---
+    // --- CAN, TOKLUK VE EFEKT GÜNCELLEMELERİ ---
     bot.on('health', sendBotStatus);
     bot.on('entityEffect', (entity, effect) => {
         if (entity === bot.entity) sendBotStatus();
@@ -186,26 +185,29 @@ function sendBotStatus() {
 
     io.emit('bot-status', {
         health: Math.round(bot.health), // Max 20
-        food: Math.round(bot.food), // Max 20
+        food: Math.round(bot.food), // Max 20 (Tokluk seviyesi)
         foodSaturation: bot.foodSaturation,
         effects: activeEffects
     });
 }
 
+// --- DÜZELTİLDİ: PORT TEMİZLEME İÇİN PM2 RESET ---
 function handleDisconnect() {
-    console.log("[🔴] Bağlantı koptu → 30 saniye sonra tekrar denenecek...");
+    if (isShuttingDown) return;
+    isShuttingDown = true;
+    console.log("[🔴] Bağlantı koptu! Port çakışmalarını önlemek için PM2 ile sistem yeniden başlatılıyor...");
     stopActions();
 
-    if (reconnectTimeout) return;
-    reconnectTimeout = setTimeout(() => {
-        reconnectTimeout = null;
-        createBot();
-    }, 30000);
+    // Portların temizlenmesi ve radarların çökmemesi için process'i kapatıyoruz.
+    // PM2 "pm2-runtime index.js" komutu sayesinde sistemi anında tertemiz şekilde geri açacaktır.
+    setTimeout(() => {
+        process.exit(0);
+    }, 5000); 
 }
 
 setInterval(() => {
-    console.log("[🔄] 30 dakika doldu. Otomatik reset atılıyor...");
-    if (bot) bot.end();
+    console.log("[🔄] 30 dakika doldu. PM2 üzerinden temiz reset atılıyor...");
+    process.exit(0);
 }, 30 * 60 * 1000);
 
 createBot();
@@ -272,10 +274,19 @@ io.on('connection', (socket) => {
         } 
         else if (data.action === 'eval-code') {
             try {
-                // Güvenlik uyarısı: eval() fonksiyonu prod ortamında tehlikelidir, 
-                // sadece adminin erişebildiğinden emin ol.
+                // DÜZELTİLDİ: Eval çıktılarını düzgün okuyabilmek için formatlama eklendi
                 let result = eval(data.code); 
-                socket.emit('eval-result', String(result));
+                
+                // Eğer sonuç bir JSON objesiyse okunabilir stringe çevir (Örn: bot.entity gibi kompleks objeler için)
+                if (typeof result === 'object' && result !== null) {
+                    try {
+                        result = JSON.stringify(result, null, 2);
+                    } catch (e) {
+                        result = "[Karmaşık Obje/Döngüsel Referans]";
+                    }
+                }
+                
+                socket.emit('eval-result', result !== undefined ? String(result) : "Kod başarıyla çalıştırıldı (Çıktı yok).");
             } catch (err) {
                 socket.emit('eval-result', `Hata: ${err.message}`);
             }
