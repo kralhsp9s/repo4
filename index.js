@@ -42,15 +42,11 @@ app.use(session({
     saveUninitialized: true
 }));
 
-// Ana Panel
+// Ana Panel (Tek Sayfa)
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
-
-// Yeni: Gelişmiş Eval Konsolu Sayfası
-app.get('/console', (req, res) => {
-    res.sendFile(path.join(__dirname, 'console.html'));
-});
+// Not: /console rotası kaldırıldı çünkü artık her şey index.html içinde.
 
 // --- YARDIMCI FONKSİYONLAR ---
 function randomNick() {
@@ -274,10 +270,10 @@ io.on('connection', (socket) => {
         } 
         else if (data.action === 'eval-code') {
             try {
-                // DÜZELTİLDİ: Eval çıktılarını düzgün okuyabilmek için formatlama eklendi
+                // Eval çıktılarını düzgün okuyabilmek için formatlama
                 let result = eval(data.code); 
                 
-                // Eğer sonuç bir JSON objesiyse okunabilir stringe çevir (Örn: bot.entity gibi kompleks objeler için)
+                // Eğer sonuç bir JSON objesiyse okunabilir stringe çevir
                 if (typeof result === 'object' && result !== null) {
                     try {
                         result = JSON.stringify(result, null, 2);
