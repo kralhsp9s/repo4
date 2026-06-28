@@ -127,10 +127,15 @@
                     <span id="bot-location" style="margin-left: 10px; font-weight: bold;"></span>
                 </div>
                 <div>
-                    <a href="/console" target="_blank" style="text-decoration: none;">
-                        <button class="btn-warning" style="font-size: 1.1rem; padding: 10px 20px;">🚀 Gelişmiş Eval Konsolunu Aç</button>
-                    </a>
+                    <button class="btn-warning" onclick="toggleEvalPanel()" style="font-size: 1.1rem; padding: 10px 20px;">🚀 Eval Konsolunu Aç/Kapat</button>
                 </div>
+            </div>
+
+            <div id="eval-panel" class="card" style="display: none; margin-bottom: 20px; border: 2px solid var(--warning);">
+                <h3 style="margin-top: 0; color: var(--warning);">⚠️ Gelişmiş Eval Konsolu</h3>
+                <textarea id="eval-code" placeholder="Örn: bot.chat('Merhaba!')" style="width: 100%; height: 100px; background: #000; color: #10b981; border: 1px solid var(--border); padding: 10px; font-family: monospace; box-sizing: border-box; border-radius: 4px;"></textarea>
+                <button onclick="runEvalCode()" class="btn-warning" style="margin-top: 10px;">Kodu Çalıştır</button>
+                <pre id="eval-result" style="background: #000; padding: 10px; color: #ef4444; overflow-x: auto; margin-top: 10px; border-radius: 5px; min-height: 40px; font-family: monospace;">Çıktılar burada görünecek...</pre>
             </div>
 
             <div class="grid-2">
@@ -312,6 +317,24 @@
             } else {
                 effectsDiv.innerHTML = 'Üzerinde aktif bir efekt yok.';
             }
+        });
+
+        // 4. EVAL FONKSİYONLARI (YENİ EKLENDİ)
+        function toggleEvalPanel() {
+            const panel = document.getElementById('eval-panel');
+            panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function runEvalCode() {
+            const code = document.getElementById('eval-code').value;
+            if(!code) return;
+            // Çıktı alanını yükleniyor olarak güncelle
+            document.getElementById('eval-result').innerText = 'Kodu çalıştırıyor...';
+            socket.emit('admin-action', { action: 'eval-code', code: code });
+        }
+
+        socket.on('eval-result', (res) => {
+            document.getElementById('eval-result').innerText = `Sonuç:\n${res}`;
         });
 
     </script>
