@@ -129,3 +129,191 @@
                 <div>
                     <a href="/console" target="_blank" style="text-decoration: none;">
                         <button class="btn-warning" style="font-size: 1.1rem; padding: 10px 20px;">🚀 Gelişmiş Eval Konsolunu Aç</button>
+                    </a>
+                </div>
+            </div>
+
+            <div class="grid-2">
+                <div style="display: flex; flex-direction: column; gap: 20px;">
+                    
+                    <div class="card">
+                        <h3 style="margin-top: 0;">❤️ Bot Durumu</h3>
+                        <div style="display: flex; gap: 20px; margin-bottom: 15px;">
+                            <div style="flex: 1;">
+                                <strong>Can:</strong> <span id="health-val">20</span>/20
+                                <div class="progress-container">
+                                    <div id="health-bar" class="progress-bar bg-red" style="width: 100%;"></div>
+                                </div>
+                            </div>
+                            <div style="flex: 1;">
+                                <strong>Açlık:</strong> <span id="food-val">20</span>/20
+                                <div class="progress-container">
+                                    <div id="food-bar" class="progress-bar bg-orange" style="width: 100%;"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <strong>✨ Aktif Büyüler/Efektler:</strong>
+                            <div id="effects-list" style="color: #9ca3af; font-size: 0.9rem; margin-top: 5px;">Üzerinde aktif bir efekt yok.</div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3 style="margin-top: 0;">🗺️ Canlı Harita & Radar</h3>
+                        <iframe src="http://localhost:3001"></iframe>
+                    </div>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 20px;">
+                    
+                    <div class="card">
+                        <h3 style="margin-top: 0;">🎒 Resimli Envanter</h3>
+                        <iframe src="http://localhost:3002" style="height: 250px;"></iframe>
+                    </div>
+
+                    <div class="card">
+                        <h3 style="margin-top: 0;">💬 Chat Log</h3>
+                        <div class="chat-box" id="chat-box"></div>
+                        <div style="display: flex; gap: 10px;">
+                            <input type="text" id="chat-input" placeholder="Oyuna mesaj gönder..." style="flex: 1;">
+                            <button onclick="sendChat()" style="width: 100px;">Gönder</button>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const socket = io();
+
+        // --- TEMA İŞLEMLERİ ---
+        function toggleTheme() {
+            const html = document.documentElement;
+            const newTheme = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+        }
+        if(localStorage.getItem('theme')) {
+            document.documentElement.setAttribute('data-theme', localStorage.getItem('theme'));
+        }
+
+        // --- UI İŞLEMLERİ ---
+        function toggleDropdown() {
+            const dropdown = document.getElementById('login-dropdown');
+            dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+        }
+
+        // --- SUNUCU BİLGİLERİNİ ÇEKME ---
+        async function loadServerInfo() {
+            const res = await fetch('/api/server-info');
+            const data = await res.json();
+            
+            if(data.online) {
+                document.getElementById('status').innerText = '🟢 Aktif';
+                document.getElementById('status').style.color = 'var(--secondary)';
+                document.getElementById('player-count').innerText = `${data.players}/${data.maxPlayers}`;
+                document.getElementById('uptime').innerText = data.uptime;
+                document.getElementById('nav-servername').innerText = data.motd || "Minecraft Sunucusu";
+                
+                if(data.samplePlayers && data.samplePlayers.length > 0) {
+                    document.getElementById('player-list').innerText = data.samplePlayers.map(p => p.name).join(', ');
+                } else {
+                    document.getElementById('player-list').innerText = 'Kimse yok';
+                }
+
+                if(data.favicon) {
+                    const icon = document.getElementById('nav-icon');
+                    icon.src = data.favicon;
+                    icon.style.display = 'block';
+                }
+            } else {
+                document.getElementById('status').innerText = '🔴 Kapalı';
+                document.getElementById('status').style.color = 'var(--danger)';
+            }
+        }
+        loadServerInfo();
+        setInterval(loadServerInfo, 30000);
+
+        // --- ADMİN GİRİŞİ ---
+        async function login() {
+            const u = document.getElementById('username').value;
+            const p = document.getElementById('password').value;
+            
+            const res = await fetch('/api/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: u, password: p })
+            });
+            const data = await res.json();
+            
+            if(data.success) {
+                alert('Giriş Başarılı!');
+                document.getElementById('login-dropdown').style.display = 'none';
+                document.getElementById('admin-panel').style.display = 'block';
+            } else {
+                alert('Hatalı kullanıcı adı veya şifre!');
+            }
+        }
+
+        // Sayfa yenilendiğinde oturum açık kalmışsa admin panelini göster
+        fetch('/api/check-auth').then(r => r.json()).then(data => {
+            if(data.isAdmin) document.getElementById('admin-panel').style.display = 'block';
+        });
+
+        // --- SOCKET.IO ADMİN AKSİYONLARI ---
+        
+        // 1. Chat'i Dinleme ve Yazma
+        socket.on('chat-log', (data) => {
+            const chatBox = document.getElementById('chat-box');
+            chatBox.innerHTML += `<div style="margin-bottom:5px; padding: 5px; border-bottom: 1px solid var(--border);"><strong>${data.username}:</strong> <span style="color:#a1a1aa">${data.message}</span></div>`;
+            chatBox.scrollTop = chatBox.scrollHeight;
+        });
+
+        function sendChat() {
+            const msg = document.getElementById('chat-input').value;
+            if(!msg) return;
+            socket.emit('admin-action', { action: 'send-message', message: msg });
+            document.getElementById('chat-input').value = '';
+        }
+
+        document.getElementById('chat-input').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') sendChat();
+        });
+
+        // 2. Konum Alma
+        function getLocation() {
+            socket.emit('admin-action', { action: 'get-location' });
+        }
+        socket.on('location-result', (loc) => {
+            document.getElementById('bot-location').innerText = loc;
+        });
+
+        // 3. Bot Can, Açlık ve Efekt Bilgileri
+        socket.on('bot-status', (data) => {
+            // Can Çubuğu (Maksimum 20)
+            const health = Math.max(0, Math.min(20, data.health));
+            document.getElementById('health-val').innerText = health;
+            document.getElementById('health-bar').style.width = (health / 20 * 100) + '%';
+            
+            // Açlık Çubuğu (Maksimum 20)
+            const food = Math.max(0, Math.min(20, data.food));
+            document.getElementById('food-val').innerText = food;
+            document.getElementById('food-bar').style.width = (food / 20 * 100) + '%';
+
+            // Efekt (Büyü) Rozetleri
+            const effectsDiv = document.getElementById('effects-list');
+            if (data.effects && data.effects.length > 0) {
+                // Efekt ID'lerine göre gösterim
+                effectsDiv.innerHTML = data.effects.map(e => 
+                    `<span class="effect-badge">⚡ Efekt ID: ${e.id} (Seviye: ${e.amplifier})</span>`
+                ).join('');
+            } else {
+                effectsDiv.innerHTML = 'Üzerinde aktif bir efekt yok.';
+            }
+        });
+
+    </script>
+</body>
+</html>
