@@ -19,12 +19,13 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "canvas":"latest",
+    "canvas": "latest",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "express-session": "^1.18.0",
     "minecraft-server-util": "^5.4.1",
     "mineflayer": "^4.22.0",
+    "mineflayer-web-inventory": "latest",
     "pm2": "^5.4.1",
     "prismarine-viewer": "latest",
     "socket.io": "^4.7.5"
